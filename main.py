@@ -33,19 +33,12 @@ def upload_file():
 
 def process_csv(file_path):
     data = pd.read_csv(file_path, delimiter=';')
+    # Primo filtro per is_buybox e status
+    filtered_data = data[(data['is_buybox'] == False) & (data['status'] == 'Online')]
     
-    # Assicurati che is_buybox sia interpretato correttamente
-    data['is_buybox'] = data['is_buybox'].astype(bool)
-    data['price'] = data['price'].astype(float)
-    data['buybox_price'] = data['buybox_price'].astype(float)
+    # Secondo filtro per la differenza di prezzo
+    filtered_data = filtered_data[(filtered_data['buybox_price'] - filtered_data['price']).abs() <= 10.0]
 
-    # Applica il filtro
-    filtered_data = data[
-        (data['is_buybox'] == False) & 
-        (data['status'] == 'Online') &
-        (data['buybox_price'] - data['price']).abs() <= 10.0
-    ]
-    
     new_data = pd.DataFrame({
         'product_id': filtered_data['product_uuid'],
         'listing_id': filtered_data['listing_id'],
@@ -56,11 +49,12 @@ def process_csv(file_path):
     })
 
     # Formattare la colonna 'price' per avere due cifre decimali
-    new_data['price'] = new_data['price'].apply(lambda x: format(x, '.2f'))
+    new_data['price'] = new_data['price'].apply(lambda x: format(float(x), '.2f'))
 
     new_file_path = file_path.replace('.csv', '_processed.csv')
     new_data.to_csv(new_file_path, index=False)
     return new_file_path
+
 
 
 
