@@ -33,7 +33,12 @@ def upload_file():
 
 def process_csv(file_path):
     data = pd.read_csv(file_path, delimiter=';')
-    filtered_data = data[(data['is_buybox'] == False) & (data['status'] == 'Online')]
+    # Aggiungi la condizione che la differenza assoluta tra price e buybox_price non sia superiore a 10.00
+    filtered_data = data[
+        (data['is_buybox'] == False) & 
+        (data['status'] == 'Online') &
+        (data['buybox_price'].astype(float) - data['price'].astype(float)).abs() <= 10.0
+    ]
     new_data = pd.DataFrame({
         'product_id': filtered_data['product_uuid'],
         'listing_id': filtered_data['listing_id'],
@@ -49,6 +54,7 @@ def process_csv(file_path):
     new_file_path = file_path.replace('.csv', '_processed.csv')
     new_data.to_csv(new_file_path, index=False)
     return new_file_path
+
 
 if __name__ == '__main__':
     app.run(debug=True)
