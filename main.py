@@ -4,14 +4,12 @@ import os
 
 app = Flask(__name__)
 
-
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Assicurati che la cartella esista
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
-
 
 @app.route('/')
 def index():
@@ -30,20 +28,19 @@ def upload_file():
         processed_file_path = process_csv(file_path)
         return send_file(processed_file_path, as_attachment=True)
 
-
 def process_csv(file_path):
     data = pd.read_csv(file_path, delimiter=';')
-    # Primo filtro per is_buybox e status
-    filtered_data = data[(data['is_buybox'] == False) & (data['status'] == 'Online')]
-    
-    # Secondo filtro per la differenza di prezzo
-    filtered_data = filtered_data[(filtered_data['buybox_price'] - filtered_data['price']).abs() <= 10.0]
+    # Filtro per status 'Online'
+    filtered_data = data[data['status'] == 'Online']
+
+    # Calcolo del 10% in meno del prezzo del buybox
+    filtered_data['price'] = filtered_data['buybox_price'] * 0.90
 
     new_data = pd.DataFrame({
         'product_id': filtered_data['product_uuid'],
         'listing_id': filtered_data['listing_id'],
         'market': 'fr-fr',
-        'price': filtered_data['buybox_price'],
+        'price': filtered_data['price'],
         'sku': filtered_data['sku'].where(pd.notnull(filtered_data['sku']), None),
         'grade_code': filtered_data['grade_code']
     })
@@ -55,8 +52,6 @@ def process_csv(file_path):
     new_data.to_csv(new_file_path, index=False)
     return new_file_path
 
-
-
-
 if __name__ == '__main__':
     app.run(debug=True)
+
